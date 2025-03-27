@@ -1,0 +1,81 @@
+/* Skew Angle Styles */
+.stripe {
+    transform-origin: bottom left;
+  }
+  
+  @media (max-width: 500px) {
+    .stripe {
+      transform: skew(10deg);
+    }
+    .stripe-image {
+      transform: skew(-10deg);
+    }
+    .stripe { margin-left: -23px; }
+    .stripe-image { margin-left: 35px; }
+  }
+  
+  @media (min-width: 501px) and (max-width: 640px) {
+    .stripe {
+      transform: skew(13deg);
+    }
+    .stripe-image {
+      transform: skew(-13deg);
+    }
+    .stripe { margin-left: -24px; }
+    .stripe-image { margin-left: 42px; }
+  }
+  
+  @media (min-width: 641px) and (max-width: 768px) {
+    .stripe {
+      transform: skew(18deg);
+    }
+    .stripe-image {
+      transform: skew(-18deg);
+    }
+    .stripe { margin-left: -24px; }
+    .stripe-image { margin-left: 57px; }
+  }
+  
+  @media (min-width: 769px) and (max-width: 820px) {
+    .stripe {
+        transform: skew(20deg);
+      }
+      .stripe-image {
+        transform: skew(-20deg);
+      }
+    .stripe { margin-left: -25px; }
+    .stripe-image { margin-left: 73px; }
+  }
+  
+  @media (min-width: 821px) and (max-width: 1024px) {
+    .stripe {
+      transform: skew(20deg);
+    }
+    .stripe-image {
+      transform: skew(-20deg);
+    }
+    .stripe { margin-left: -28px; }
+    .stripe-image { margin-left: 75px; }
+  }
+  
+  @media (min-width: 1025px) and (max-width: 1280px) {
+    .stripe {
+      transform: skew(23deg);
+    }
+    .stripe-image {
+      transform: skew(-23deg);
+    }
+    .stripe { margin-left: -60px; }
+    .stripe-image { margin-left: 85px; }
+  }
+  
+  @media (min-width: 1281px) {
+    .stripe {
+        transform: skew(23deg);
+      }
+      .stripe-image {
+        transform: skew(-23deg);
+      }
+    .stripe { margin-left: -35px; }
+    .stripe-image { margin-left: 82px; }
+  }
