@@ -77,7 +77,7 @@ import FAQ from "../pages/FAQ"
 import Instructors from "../pages/Instructors"
 import View from "../pages/ViewComponent"
 import Upload from "../pages/UploadComponent"
-
+import Banner from "../pages/Banner"
 function Router() {
   const routes = [
     {
@@ -155,6 +155,10 @@ function Router() {
         {
           path: "dashboard-overview-4",
           element: <DashboardOverview4 />,
+        },
+        {
+          path: "banner",
+          element: <Banner />,
         },
         {
           path: "dashboard-overview-5",

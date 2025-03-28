@@ -45,6 +45,11 @@ const initialState: SideMenuState = {
       pathname: "/upload",
       title: "Upload",
     },
+    {
+      icon: "ActivitySquare",
+      pathname: "/banner",
+      title: "Banner",
+    },
   ],
 };
 
