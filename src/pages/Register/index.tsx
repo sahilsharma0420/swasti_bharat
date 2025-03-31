@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { FormCheck, FormInput, FormLabel } from "@/components/Base/Form";
 import Tippy from "@/components/Base/Tippy";
 import users from "@/fakers/users";
@@ -5,8 +6,77 @@ import Button from "@/components/Base/Button";
 import clsx from "clsx";
 import _ from "lodash";
 import ThemeSwitcher from "@/components/ThemeSwitcher";
+import axios from "axios";
 
 function Main() {
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    mobileNumber: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const handleChange = (e: any) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = async (e: any) => {
+    console.log("hello")
+    e.preventDefault();
+
+    // Basic validation
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    if (
+      !formData.firstName ||
+      !formData.lastName ||
+      !formData.email ||
+      !formData.mobileNumber ||
+      !formData.password
+    ) {
+      setError("All fields are required");
+      return;
+    }
+
+    // Prepare data for API
+    const apiData = {
+      name: `${formData.firstName} ${formData.lastName}`,
+      email: formData.email,
+      mobileNumber: formData.mobileNumber,
+      password: formData.password,
+    };
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/admin/register",
+        apiData
+      );
+      setSuccess(true);
+      // Redirect to login or show success message
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message || "Registration failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       <div className="container grid lg:h-screen grid-cols-12 lg:max-w-[1550px] 2xl:max-w-[1750px] py-10 px-5 sm:py-14 sm:px-10 md:px-36 lg:py-0 lg:pl-14 lg:pr-12 xl:px-24">
@@ -34,30 +104,64 @@ function Main() {
                   Sign In
                 </a>
               </div>
-              <div className="mt-6">
+
+              {error && (
+                <div className="mt-4 px-4 py-3 text-sm bg-red-100 text-red-600 rounded-lg">
+                  {error}
+                </div>
+              )}
+
+              {success && (
+                <div className="mt-4 px-4 py-3 text-sm bg-green-100 text-green-600 rounded-lg">
+                  Registration successful! Please login.
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="mt-6">
                 <FormLabel>First Name*</FormLabel>
                 <FormInput
                   type="text"
+                  name="firstName"
                   className="block px-4 py-3.5 rounded-[0.6rem] border-slate-300/80"
                   placeholder={users.fakeUsers()[0].name.split(" ")[0]}
+                  value={formData.firstName}
+                  onChange={handleChange}
                 />
                 <FormLabel className="mt-5">Last Name*</FormLabel>
                 <FormInput
                   type="text"
+                  name="lastName"
                   className="block px-4 py-3.5 rounded-[0.6rem] border-slate-300/80"
                   placeholder={users.fakeUsers()[0].name.split(" ")[1]}
+                  value={formData.lastName}
+                  onChange={handleChange}
                 />
                 <FormLabel className="mt-5">Email*</FormLabel>
                 <FormInput
-                  type="text"
+                  type="email"
+                  name="email"
                   className="block px-4 py-3.5 rounded-[0.6rem] border-slate-300/80"
                   placeholder={users.fakeUsers()[0].email}
+                  value={formData.email}
+                  onChange={handleChange}
+                />
+                <FormLabel className="mt-5">Phone Number*</FormLabel>
+                <FormInput
+                  type="text"
+                  name="mobileNumber"
+                  className="block px-4 py-3.5 rounded-[0.6rem] border-slate-300/80"
+                  placeholder={users.fakeUsers()[0].phone}
+                  value={formData.mobileNumber}
+                  onChange={handleChange}
                 />
                 <FormLabel className="mt-5">Password*</FormLabel>
                 <FormInput
                   type="password"
+                  name="password"
                   className="block px-4 py-3.5 rounded-[0.6rem] border-slate-300/80"
                   placeholder="************"
+                  value={formData.password}
+                  onChange={handleChange}
                 />
                 <div className="grid w-full h-1.5 grid-cols-12 gap-4 mt-3.5">
                   <div className="h-full col-span-3 border rounded active bg-slate-400/30 border-slate-400/20 [&.active]:bg-theme-1/30 [&.active]:border-theme-1/20"></div>
@@ -74,8 +178,11 @@ function Main() {
                 <FormLabel className="mt-5">Password Confirmation*</FormLabel>
                 <FormInput
                   type="password"
+                  name="confirmPassword"
                   className="block px-4 py-3.5 rounded-[0.6rem] border-slate-300/80"
                   placeholder="************"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
                 />
                 <div className="flex items-center mt-5 text-xs text-slate-500 sm:text-sm">
                   <FormCheck.Input
@@ -96,21 +203,25 @@ function Main() {
                 </div>
                 <div className="mt-5 text-center xl:mt-8 xl:text-left">
                   <Button
-                    variant="primary"
+                    variant="outline-secondary"
                     rounded
-                    className="bg-gradient-to-r from-theme-1/70 to-theme-2/70 w-full py-3.5 xl:mr-3 dark:border-darkmode-400"
+                    className="bg-white/70 w-full py-3.5 mt-3 dark:bg-darkmode-400"
+                    type="button"
+                    onClick={() => (window.location.href = "/signin")}
                   >
                     Sign In
                   </Button>
                   <Button
-                    variant="outline-secondary"
+                    variant="primary"
                     rounded
-                    className="bg-white/70 w-full py-3.5 mt-3 dark:bg-darkmode-400"
+                    className="bg-gradient-to-r from-theme-1/70 to-theme-2/70 w-full py-3.5 xl:mr-3 dark:border-darkmode-400"
+                    type="submit"
+                    disabled={loading}
                   >
-                    Sign Up
+                    {loading ? "Processing..." : "Sign Up"}
                   </Button>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         </div>
