@@ -134,9 +134,12 @@ function Router() {
           path: "/upload",
           element: <Upload/>,
         },
-      
         {
           path: "/",
+          element: <DashboardOverview1/>,
+        },
+        {
+          path: "/specialisation",
           element: <Specialisation />,
         },
         {
