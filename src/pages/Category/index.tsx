@@ -12,50 +12,85 @@ import {
   Tag,
   BookOpen,
 } from "lucide-react";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import * as Yup from "yup";
 
 import { YogaCategoryService } from "@/services/category.service";
-const Main = () => {
-  const [activeTab, setActiveTab] = useState("add");
-  const [category, setCategory] = useState("");
-  const [description, setDescription] = useState("");
-  const [categories, setCategories] = useState([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
-  const [editIndex, setEditIndex] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [notification, setNotification] = useState({
+// Define TypeScript interfaces
+interface CategoryFormValues {
+  category: string;
+  description: string;
+}
+
+interface CategoryItem {
+  id: string;
+  category: string;
+  description: string;
+}
+
+interface NotificationState {
+  show: boolean;
+  message: string;
+  type: "success" | "error" | "";
+}
+
+// Define validation schema using Yup
+const CategorySchema = Yup.object().shape({
+  category: Yup.string()
+    .required("Category name is required")
+    .min(2, "Category name must be at least 2 characters")
+    .max(50, "Category name must be less than 50 characters"),
+  description: Yup.string()
+    .max(500, "Description must be less than 500 characters")
+});
+
+const Main: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<"add" | "get">("add");
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+
+  const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [notification, setNotification] = useState<NotificationState>({
     show: false,
     message: "",
     type: "",
   });
-  const [loading, setLoading] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [viewDetails, setViewDetails] = useState(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
+  const [viewDetails, setViewDetails] = useState<CategoryItem | null>(null);
+
+  // Initial form values
+  const initialValues: CategoryFormValues = {
+    category: "",
+    description: "",
+  };
 
   // Fetch all categories on component mount
   useEffect(() => {
     fetchCategories();
   }, []);
 
-  const fetchCategories = async () => {
+  const fetchCategories = async (): Promise<void> => {
     setLoading(true);
     try {
       const response = await YogaCategoryService.getAllCategories();
       // Map API response to our component's data structure
-      const formattedCategories = response.data.data.map(item => ({
+      const formattedCategories: CategoryItem[] = response.data.data.map((item: any) => ({
         id: item._id,
         category: item.yogaCategory,
         description: item.description || ""
       }));
       setCategories(formattedCategories);
-    } catch (error) {
+    } catch (error: any) {
       showNotification(`Error fetching categories: ${error.message}`, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const showNotification = (message, type) => {
+  const showNotification = (message: string, type: "success" | "error"): void => {
     setNotification({ show: true, message, type });
     setTimeout(
       () => setNotification({ show: false, message: "", type: "" }),
@@ -63,30 +98,29 @@ const Main = () => {
     );
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (category.trim() === "") {
-      showNotification("Category name cannot be empty", "error");
-      return;
-    }
-
+  const handleSubmit = async (
+    values: CategoryFormValues, 
+    { resetForm, setSubmitting }: { resetForm: () => void; setSubmitting: (isSubmitting: boolean) => void }
+  ): Promise<void> => {
     // Check for duplicates when adding new category
     if (
       editIndex === null &&
       categories.some(
-        (item) => item.category.toLowerCase() === category.toLowerCase()
+        (item) => item.category.toLowerCase() === values.category.toLowerCase()
       )
     ) {
       showNotification("This category already exists", "error");
+      setSubmitting(false);
       return;
     }
-
+    
     setLoading(true);
     try {
       const categoryData = { 
-        category, 
+        category: values.category, 
+        description: values.description
       };
-
+      
       if (editIndex !== null) {
         // Edit existing category
         const categoryToUpdate = categories[editIndex];
@@ -95,6 +129,7 @@ const Main = () => {
         setEditIndex(null);
       } else {
         // Add new category
+        console.log(categoryData)
         await YogaCategoryService.createCategory(categoryData);
         showNotification("Yoga category added successfully", "success");
       }
@@ -103,36 +138,36 @@ const Main = () => {
       fetchCategories();
       
       // Reset form
-      setCategory("");
-      setDescription("");
-    } catch (error) {
+      resetForm();
+    } catch (error: any) {
       showNotification(`Error: ${error.message}`, "error");
     } finally {
       setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  const handleEdit = async (index) => {
+  const handleEdit = (index: number): void => {
     const item = categories[index];
-    setCategory(item.category);
-    setDescription(item.description || "");
     setEditIndex(index);
     setSelectedCategoryId(item.id);
     setActiveTab("add");
   };
 
-  const handleDelete = (index) => {
+  const handleDelete = (index: number): void => {
     setConfirmDelete(index);
   };
 
-  const confirmDeleteAction = async () => {
+  const confirmDeleteAction = async (): Promise<void> => {
+    if (confirmDelete === null) return;
+    
     setLoading(true);
     try {
       const categoryToDelete = categories[confirmDelete];
       await YogaCategoryService.deleteCategory(categoryToDelete.id);
       showNotification("Yoga category deleted successfully", "success");
       fetchCategories();
-    } catch (error) {
+    } catch (error: any) {
       showNotification(`Error deleting category: ${error.message}`, "error");
     } finally {
       setLoading(false);
@@ -140,35 +175,47 @@ const Main = () => {
     }
   };
 
-  const cancelDelete = () => {
+  const cancelDelete = (): void => {
     setConfirmDelete(null);
   };
 
-  const handleViewDetails = async (item) => {
+  const handleViewDetails = async (item: CategoryItem): Promise<void> => {
     setLoading(true);
     try {
+      console.log(item)
       // If we need detailed info for a single category, fetch it by ID
       const response = await YogaCategoryService.getCategoryById(item.id);
-      const detailedCategory = {
-        id: response.data._id,
-        category: response.data.yogaCategory,
-        description: response.data.description || ""
+      const detailedCategory: CategoryItem = {
+        id: response.data.yogaCategory._id,
+        category: response.data.yogaCategory.yogaCategory,
+        description: response.data.yogaCategory.description || ""
       };
       setViewDetails(detailedCategory);
-    } catch (error) {
+    } catch (error: any) {
       showNotification(`Error fetching category details: ${error.message}`, "error");
     } finally {
       setLoading(false);
     }
   };
 
-  const getSortedCategories = () => {
+  const getSortedCategories = (): CategoryItem[] => {
     return categories.filter((item) => {
       return item.category.toLowerCase().includes(searchTerm.toLowerCase());
     });
   };
 
   const filteredCategories = getSortedCategories();
+
+  const getCurrentFormValues = (): CategoryFormValues => {
+    if (editIndex !== null) {
+      const category = categories[editIndex];
+      return {
+        category: category.category,
+        description: category.description || '',
+      };
+    }
+    return initialValues;
+  };
 
   return (
     <div className="w-full mx-auto p-6 bg-white rounded-lg shadow-lg border-t-4 border-indigo-600 mt-8">
@@ -238,81 +285,106 @@ const Main = () => {
               : "Add New Yoga Category"}
           </h3>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label
-                htmlFor="category"
-                className="block mb-2 font-medium text-gray-700"
-              >
-                Yoga Category <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                id="category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="Enter yoga category name"
-                disabled={loading}
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Enter a unique yoga category name
-              </p>
-            </div>
+          <Formik
+            initialValues={getCurrentFormValues()}
+            validationSchema={CategorySchema}
+            onSubmit={handleSubmit}
+            enableReinitialize={true}
+          >
+            {({ values, errors, touched, handleChange, handleBlur, resetForm, isSubmitting }) => (
+              <Form className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="category"
+                    className="block mb-2 font-medium text-gray-700"
+                  >
+                    Yoga Category <span className="text-red-500">*</span>
+                  </label>
+                  <Field
+                    type="text"
+                    id="category"
+                    name="category"
+                    className={`w-full p-3 border ${
+                      errors.category && touched.category 
+                        ? "border-red-300 ring-red-500" 
+                        : "border-gray-300 focus:ring-indigo-500"
+                    } rounded-md focus:outline-none focus:ring-2 focus:border-transparent`}
+                    placeholder="Enter yoga category name"
+                    disabled={loading || isSubmitting}
+                  />
+                  <ErrorMessage 
+                    name="category" 
+                    component="p" 
+                    className="mt-1 text-sm text-red-600" 
+                  />
+                  <p className="mt-1 text-sm text-gray-500">
+                    Enter a unique yoga category name
+                  </p>
+                </div>
 
-            <div>
-              <label
-                htmlFor="description"
-                className="block mb-2 font-medium text-gray-700"
-              >
-                Description
-              </label>
-              <textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="Enter detailed description of the yoga category"
-                rows={3}
-                disabled={loading}
-              />
-              <p className="mt-1 text-sm text-gray-500">
-                Provide a brief description of the yoga style and practices
-              </p>
-            </div>
+                <div>
+                  <label
+                    htmlFor="description"
+                    className="block mb-2 font-medium text-gray-700"
+                  >
+                    Description
+                  </label>
+                  <Field
+                    as="textarea"
+                    id="description"
+                    name="description"
+                    className={`w-full p-3 border ${
+                      errors.description && touched.description 
+                        ? "border-red-300 ring-red-500" 
+                        : "border-gray-300 focus:ring-indigo-500"
+                    } rounded-md focus:outline-none focus:ring-2 focus:border-transparent`}
+                    placeholder="Enter detailed description of the yoga category"
+                    rows={3}
+                    disabled={loading || isSubmitting}
+                  />
+                  <ErrorMessage 
+                    name="description" 
+                    component="p" 
+                    className="mt-1 text-sm text-red-600" 
+                  />
+                  <p className="mt-1 text-sm text-gray-500">
+                    Provide a brief description of the yoga style and practices
+                  </p>
+                </div>
 
-            <div className="flex items-center justify-between pt-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setCategory("");
-                  setDescription("");
-                  setEditIndex(null);
-                }}
-                className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
-                disabled={loading}
-              >
-                Clear Form
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center"
-                disabled={loading}
-              >
-                {loading ? (
-                  <span className="flex items-center">
-                    <RefreshCw size={16} className="mr-2 animate-spin" />
-                    Processing...
-                  </span>
-                ) : (
-                  <>
-                    <Save size={16} className="mr-2" />
-                    {editIndex !== null ? "Update" : "Save"} Category
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+                <div className="flex items-center justify-between pt-4">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resetForm();
+                      setEditIndex(null);
+                    }}
+                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 transition-colors"
+                    disabled={loading || isSubmitting}
+                  >
+                    Clear Form
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors flex items-center"
+                    disabled={loading || isSubmitting}
+                  >
+                    {loading || isSubmitting ? (
+                      <span className="flex items-center">
+                        <RefreshCw size={16} className="mr-2 animate-spin" />
+                        Processing...
+                      </span>
+                    ) : (
+                      <>
+                        <Save size={16} className="mr-2" />
+                        {editIndex !== null ? "Update" : "Save"} Category
+                      </>
+                    )}
+                  </button>
+                </div>
+              </Form>
+            )}
+          </Formik>
         </div>
       )}
 

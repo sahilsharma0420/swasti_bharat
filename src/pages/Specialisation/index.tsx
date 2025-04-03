@@ -7,45 +7,141 @@ import {
   AlertCircle,
   X,
   PlusCircle,
-  Info,
   RefreshCw,
   ChevronDown,
 } from "lucide-react";
 import SpecializationService from "@/services/specialisationService";
-import { Specialization } from "@/interfaces/specialisation.model";
+import { Formik, Form, Field, ErrorMessage, FormikHelpers } from "formik";
+import * as Yup from "yup";
 
-const Main = () => {
-  const [activeTab, setActiveTab] = useState("add");
-  const [specialization, setSpecialization] = useState("");
-  const [description, setDescription] = useState("");
+// Updated Specialization interface to match API response
+interface Specialization {
+  _id: string;
+  specialization: string;
+  description?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
+// Form values interface
+interface SpecializationFormValues {
+  specialization: string;
+  description: string;
+}
+
+// Notification interface
+interface NotificationState {
+  show: boolean;
+  message: string;
+  type: "success" | "error" | "";
+}
+
+// Validation schema using Yup
+const SpecializationSchema = Yup.object().shape({
+  specialization: Yup.string()
+    .required("Specialization name is required")
+    .min(2, "Specialization must be at least 2 characters")
+    .max(50, "Specialization must be less than 50 characters"),
+  description: Yup.string()
+    .max(500, "Description must be less than 500 characters")
+});
+
+const Main: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<"add" | "get">("add");
   const [specializations, setSpecializations] = useState<Specialization[]>([]);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [notification, setNotification] = useState({
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [notification, setNotification] = useState<NotificationState>({
     show: false,
     message: "",
     type: "",
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [sortOrder, setSortOrder] = useState("asc");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [apiResponseDebug, setApiResponseDebug] = useState<string>("No API call made yet");
+
+  // Initial form values for Formik
+  const initialValues: SpecializationFormValues = {
+    specialization: "",
+    description: "",
+  };
 
   // Fetch all specializations on component mount
   useEffect(() => {
     fetchSpecializations();
   }, []);
+  
+  // Helper function to extract specializations from various response formats
+  const extractSpecializations = (response: any): Specialization[] => {
+    console.log("Attempting to extract specializations from:", response);
+    
+    // Try different possible paths to the specialization data
+    const possiblePaths = [
+      // Standard path based on interface
+      response?.data?.specialization,
+      // Direct data array
+      response?.specialization,
+      // Nested in data.data
+      response?.data?.data?.specialization,
+      // Just data property (if data is the array)
+      response?.data,
+      // Top level response itself (if response is the array)
+      response
+    ];
+    
+    for (const path of possiblePaths) {
+      if (Array.isArray(path)) {
+        console.log("Found specializations array at path:", path);
+        return path.filter(item => 
+          item && 
+          typeof item === 'object' && 
+          item.hasOwnProperty('_id') && 
+          item.hasOwnProperty('specialization')
+        );
+      }
+    }
+    
+    console.error("Could not find valid specializations array in response");
+    return [];
+  };
 
   // Fetch all specializations from API
-  const fetchSpecializations = async () => {
+  const fetchSpecializations = async (): Promise<void> => {
     setLoading(true);
     try {
-      const data = await SpecializationService.getAllSpecializations();
-      setSpecializations(data.data.specialization);
-      showNotification("Specializations loaded successfully", "success");
+      const response = await SpecializationService.getAllSpecializations();
+      console.log("Raw API response:", response);
+      setApiResponseDebug(JSON.stringify(response, null, 2));
+      
+      // Try to extract specializations regardless of the response structure
+      const extractedSpecializations = extractSpecializations(response);
+      
+      if (extractedSpecializations.length > 0) {
+        setSpecializations(extractedSpecializations);
+        showNotification(`Loaded ${extractedSpecializations.length} specializations successfully`, "success");
+        
+        // Try to extract pagination info if available
+        const totalPages = response?.data?.totalPages || 
+                          response?.data?.data?.totalPages || 
+                          1;
+        const currentPage = response?.data?.currentPage || 
+                           response?.data?.data?.currentPage || 
+                           1;
+        
+        setTotalPages(totalPages);
+        setCurrentPage(currentPage);
+      } else {
+        console.error("No valid specializations found in response");
+        setSpecializations([]);
+        showNotification("No specializations found in the response", "error");
+      }
     } catch (error: any) {
+      console.error("Error fetching specializations:", error);
+      setSpecializations([]);
       showNotification(
         error.message || "Failed to load specializations",
         "error"
@@ -55,7 +151,7 @@ const Main = () => {
     }
   };
 
-  const showNotification = (message: any, type: any) => {
+  const showNotification = (message: string, type: "success" | "error"): void => {
     setNotification({ show: true, message, type });
     setTimeout(
       () => setNotification({ show: false, message: "", type: "" }),
@@ -63,81 +159,81 @@ const Main = () => {
     );
   };
 
-  const handleSubmit = async (e: any) => {
-    e.preventDefault();
-    if (specialization.trim() === "") {
-      showNotification("Specialization name cannot be empty", "error");
-      return;
-    }
-
+  const handleSubmit = async (
+    values: SpecializationFormValues, 
+    { resetForm, setSubmitting }: FormikHelpers<SpecializationFormValues>
+  ): Promise<void> => {
+    // Check for duplicate specialization
     const specialtyExists = specializations.some(
-      (spec: any) =>
-        spec.specialization.toLowerCase() === specialization.toLowerCase() &&
+      (spec: Specialization) =>
+        spec.specialization.toLowerCase() === values.specialization.toLowerCase() &&
         (editIndex === null || specializations.indexOf(spec) !== editIndex)
     );
 
     if (specialtyExists) {
       showNotification("This specialization already exists", "error");
+      setSubmitting(false);
       return;
     }
 
     setLoading(true);
 
     try {
-      const newSpecialization = {
-        specialization: specialization,
-        description: description || "No description provided",
+      const newSpecialization: Omit<Specialization, '_id' | 'createdAt' | 'updatedAt'> = {
+        specialization: values.specialization,
+        description: values.description || "No description provided",
       };
 
-      if (editIndex !== null) {
+      if (editIndex !== null && editId !== null) {
         await SpecializationService.updateSpecialization(
           editId,
           newSpecialization
         );
-        const updatedSpecializations =
-          await SpecializationService.getAllSpecializations();
-        setSpecializations(updatedSpecializations.data.specialization);
-        setEditIndex(null);
-        setEditId(null);
         showNotification("Specialization updated successfully!", "success");
       } else {
         await SpecializationService.createSpecialization(newSpecialization);
-        const updatedSpecializations =
-          await SpecializationService.getAllSpecializations();
-        setSpecializations(updatedSpecializations.data.specialization);
         showNotification("Specialization added successfully!", "success");
       }
 
-      setSpecialization("");
-      setDescription("");
+      // Refresh the specialization list after add/update
+      await fetchSpecializations();
+      setEditIndex(null);
+      setEditId(null);
+      resetForm();
     } catch (error: any) {
       showNotification(error.message || "Operation failed", "error");
     } finally {
       setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  const handleEdit = (index: number) => {
+  const handleEdit = (index: number): void => {
     const spec = specializations[index];
-    setSpecialization(spec.specialization);
-    setDescription(spec.description);  // Fixed: Was setting description to specialization
-    setEditIndex(index);
-    setEditId(spec._id);
-    setActiveTab("add");
+    if (spec) {
+      setEditIndex(index);
+      setEditId(spec._id);
+      setActiveTab("add");
+    }
   };
 
-  const handleDelete = (index: number) => {
+  const handleDelete = (index: number): void => {
     setConfirmDelete(index);
   };
 
-  const confirmDeleteAction = async () => {
+  const confirmDeleteAction = async (): Promise<void> => {
+    if (confirmDelete === null) return;
+    
+    const specToDelete = specializations[confirmDelete];
+    if (!specToDelete) {
+      setConfirmDelete(null);
+      return;
+    }
+    
     setLoading(true);
     try {
-      const specToDelete = specializations[confirmDelete as number];  // Fixed: Using confirmDelete instead of hardcoded 0
       await SpecializationService.deleteSpecialization(specToDelete._id);
-      const updatedSpecializations =
-        await SpecializationService.getAllSpecializations();
-      setSpecializations(updatedSpecializations.data.specialization);
+      await fetchSpecializations();
       showNotification("Specialization deleted successfully!", "success");
     } catch (error: any) {
       showNotification(
@@ -150,11 +246,11 @@ const Main = () => {
     }
   };
 
-  const cancelDelete = () => {
+  const cancelDelete = (): void => {
     setConfirmDelete(null);
   };
 
-  const handleSort = () => {
+  const handleSort = (): void => {
     const newOrder = sortOrder === "asc" ? "desc" : "asc";
     setSortOrder(newOrder);
 
@@ -169,19 +265,23 @@ const Main = () => {
     setSpecializations(sorted);
   };
 
-  const resetFilters = () => {
+  const resetFilters = (): void => {
     setSearchTerm("");
     setSortOrder("asc");
     fetchSpecializations();
   };
 
-  // Fixed: Corrected the filter function to return the filtered values
-  const filteredSpecializations = specializations.filter((spec: any) => 
-    spec.specialization.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    spec.description.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Safely filter specializations with proper checks
+  const filteredSpecializations = specializations
+    .filter(spec => spec && typeof spec === 'object')
+    .filter(spec => 
+      spec.specialization && 
+      spec.specialization.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
 
   return (
+    
     <div className="w-full mx-auto p-6 bg-white rounded-lg shadow-lg border border-gray-200">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center">
@@ -189,6 +289,7 @@ const Main = () => {
             <PlusCircle size={24} />
           </span>
           Yoga Specialization Management
+          
         </h2>
         {loading && (
           <div className="flex items-center text-blue-600">
@@ -225,7 +326,9 @@ const Main = () => {
         </div>
       )}
 
-      {confirmDelete !== null && (
+    
+
+      {confirmDelete !== null && specializations[confirmDelete] && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
             <h3 className="text-xl font-semibold mb-4">Confirm Delete</h3>
@@ -278,45 +381,78 @@ const Main = () => {
 
       {activeTab === "add" && (
         <div className="p-6 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block mb-2 font-medium text-gray-700">
-                Specialization Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={specialization}
-                onChange={(e) => setSpecialization(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter yoga specialization"
-                disabled={loading}
-              />
-            </div>
+          <Formik
+            initialValues={
+              editIndex !== null && specializations[editIndex]
+                ? {
+                    specialization: specializations[editIndex].specialization,
+                    description: specializations[editIndex].description || "",
+                  }
+                : initialValues
+            }
+            validationSchema={SpecializationSchema}
+            onSubmit={handleSubmit}
+            enableReinitialize={true}
+          >
+            {({ isSubmitting, errors, touched }) => (
+              <Form className="space-y-5">
+                <div>
+                  <label className="block mb-2 font-medium text-gray-700">
+                    Specialization Name <span className="text-red-500">*</span>
+                  </label>
+                  <Field
+                    type="text"
+                    name="specialization"
+                    className={`w-full p-3 border ${
+                      errors.specialization && touched.specialization
+                        ? "border-red-500 ring-1 ring-red-500"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                    placeholder="Enter yoga specialization"
+                    disabled={loading}
+                  />
+                  <ErrorMessage
+                    name="specialization"
+                    component="div"
+                    className="text-red-500 text-sm mt-1"
+                  />
+                </div>
 
-            <div>
-              <label className="block mb-2 font-medium text-gray-700">
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-24"
-                placeholder="Enter a brief description about this specialization"
-                disabled={loading}
-              />
-            </div>
+                <div>
+                  <label className="block mb-2 font-medium text-gray-700">
+                    Description
+                  </label>
+                  <Field
+                    as="textarea"
+                    name="description"
+                    className={`w-full p-3 border ${
+                      errors.description && touched.description
+                        ? "border-red-500 ring-1 ring-red-500"
+                        : "border-gray-300"
+                    } rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-24`}
+                    placeholder="Enter a brief description about this specialization"
+                    disabled={loading}
+                  />
+                  <ErrorMessage
+                    name="description"
+                    component="div"
+                    className="text-red-500 text-sm mt-1"
+                  />
+                </div>
 
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition shadow-md flex items-center"
-                disabled={loading}
-              >
-                {editIndex !== null ? "Update" : "Save"} Specialization
-                <Check size={18} className="ml-2" />
-              </button>
-            </div>
-          </form>
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition shadow-md flex items-center"
+                    disabled={isSubmitting || loading}
+                  >
+                    {editIndex !== null ? "Update" : "Save"} Specialization
+                    <Check size={18} className="ml-2" />
+                  </button>
+                </div>
+              </Form>
+            )}
+          </Formik>
         </div>
       )}
 
@@ -330,7 +466,7 @@ const Main = () => {
               />
               <input
                 type="text"
-                placeholder="Search by name or description..."
+                placeholder="Search by specialization name..."
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -372,13 +508,6 @@ const Main = () => {
                     <th className="p-4 text-left text-xs font-semibold text-gray-600 uppercase">
                       Specialization
                     </th>
-                    <th className="p-4 text-left text-xs font-semibold text-gray-600 uppercase hidden md:table-cell">
-                      Description
-                    </th>
-
-                    <th className="p-4 text-center text-xs font-semibold text-gray-600 uppercase hidden md:table-cell">
-                      Date Added
-                    </th>
                     <th className="p-4 text-center text-xs font-semibold text-gray-600 uppercase">
                       Actions
                     </th>
@@ -386,18 +515,9 @@ const Main = () => {
                 </thead>
                 <tbody>
                   {filteredSpecializations.map((spec, index) => (
-                    <tr key={index} className="hover:bg-gray-50 border-b">
+                    <tr key={spec._id} className="hover:bg-gray-50 border-b">
                       <td className="p-4">{index + 1}</td>
                       <td className="p-4 font-medium">{spec.specialization}</td>
-                      <td className="p-4 text-sm text-gray-500 hidden md:table-cell">
-                        {spec.specialization.length > 60
-                          ? `${spec.specialization.substring(0, 60)}...`
-                          : spec.specialization}
-                      </td>
-
-                      <td className="p-4 text-sm text-gray-500 hidden md:table-cell">
-                        {new Date(spec.specialization).toISOString().split("T")[0]}
-                      </td>
                       <td className="p-4">
                         <div className="flex justify-center space-x-2">
                           <button
@@ -428,12 +548,22 @@ const Main = () => {
                 No specializations found
               </h3>
               <p className="text-gray-500 mt-2">
-                Try adjusting your search or add a new specialization
+                {loading ? "Loading specializations..." : "Try adjusting your search or add a new specialization"}
               </p>
+            </div>
+          )}
+          
+          {/* Pagination display */}
+          {totalPages > 1 && (
+            <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
+              <div>
+                Page {currentPage} of {totalPages}
+              </div>
             </div>
           )}
         </div>
       )}
+
     </div>
   );
 };

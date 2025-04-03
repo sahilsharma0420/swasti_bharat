@@ -28,6 +28,7 @@ export const YogaCategoryService = {
     try {
       const response = await api.post(YOGA_CATEGORY_URL, {
         yogaCategory: categoryData.category,
+        description:categoryData.description
       });
       return response.data;
     } catch (error: any) {
