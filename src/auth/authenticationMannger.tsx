@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { authService } from "@/services/apiService";
 
+import authService from "@/services/authService";
 // Define types
 interface User {
   // Add user properties based on your actual user object

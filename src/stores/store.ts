@@ -1,3 +1,4 @@
+// src/store.ts
 import { configureStore, ThunkAction, Action } from "@reduxjs/toolkit";
 import darkModeReducer from "./darkModeSlice";
 import colorSchemeReducer from "./colorSchemeSlice";
@@ -5,6 +6,7 @@ import sideMenuReducer from "./sideMenuSlice";
 import themeReducer from "./themeSlice";
 import compactMenuReducer from "./compactMenuSlice";
 import pageLoaderReducer from "./pageLoaderSlice";
+import authReducer from "./authSlice";
 
 export const store = configureStore({
   reducer: {
@@ -14,6 +16,7 @@ export const store = configureStore({
     theme: themeReducer,
     compactMenu: compactMenuReducer,
     pageLoader: pageLoaderReducer,
+    auth: authReducer, // Add the auth reducer
   },
 });
 

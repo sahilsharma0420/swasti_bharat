@@ -6,6 +6,7 @@ import { store } from "./stores/store";
 import Router from "./router";
 import "./assets/css/app.css";
 import { AuthProvider } from "./auth/authenticationMannger";
+import React from "react";
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <BrowserRouter>
     <Provider store={store}>
@@ -16,3 +17,4 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <ScrollToTop />
   </BrowserRouter>
 );
+

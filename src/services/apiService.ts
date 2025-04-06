@@ -22,22 +22,6 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Authentication services
-const authService = {
-  register: (userData:any) => {
-    return apiClient.post("/admin/register", userData);
-  },
-  login: (credentials:any) => {
-    return apiClient.post("/admin/login", credentials);
-  },
-  logout: () => {
-    localStorage.removeItem("auth_token");
-    // You can add additional logout logic here
-  },
-  getCurrentUser: () => {
-    // You'll need to implement this endpoint on your backend
-    return apiClient.get("/admin");
-  },
-};
 
-export { apiClient, authService };
+
+export { apiClient };

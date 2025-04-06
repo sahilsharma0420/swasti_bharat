@@ -1,9 +1,9 @@
-// src/api/axiosConfig.js
-import axios from 'axios';
+// src/api/axiosConfig.ts
+import axios, { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
 const baseURL = 'http://localhost:5000/api';
 
-const api = axios.create({
+const api: AxiosInstance = axios.create({
   baseURL,
   timeout: 10000,
   headers: {
@@ -13,25 +13,23 @@ const api = axios.create({
 
 // Request interceptor to add auth token to all requests
 api.interceptors.request.use(
-  (config) => {
+  (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
     const token = localStorage.getItem('auth_token');
-    if (token) {
+    if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
+  (error: AxiosError) => {
     return Promise.reject(error);
   }
 );
 
 // Response interceptor for error handling
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    const { response } = error;
-    // Handle different error statuses
-    if (response && response.status === 401) {
+  (response: AxiosResponse): AxiosResponse => response,
+  (error: AxiosError) => {
+    if (error.response && error.response.status === 401) {
       // Unauthorized - clear token and redirect to login
       localStorage.removeItem('auth_token');
       window.location.href = '/login';
@@ -41,5 +39,3 @@ api.interceptors.response.use(
 );
 
 export default api;
-
-// src/api/specializationService.js
