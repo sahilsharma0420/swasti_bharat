@@ -21,6 +21,11 @@ const initialState: SideMenuState = {
     "DASHBOARDS",
     {
       icon: "ActivitySquare",
+      pathname: "/",
+      title: "Dashbaord ",
+    },
+    {
+      icon: "ActivitySquare",
       pathname: "/specialisation",
       title: "Specialisation ",
     },
@@ -29,6 +34,15 @@ const initialState: SideMenuState = {
       icon: "ActivitySquare",
       pathname: "/category",
       title: "category ",
+    },
+    {
+      icon: "ActivitySquare",
+      pathname: "/yogaCategoryRequirement",
+      title: "YogaCategoryRequirement ",
+    }, {
+      icon: "ActivitySquare",
+      pathname: "/yogaCategoryRule",
+      title: "YogaCategoryRule ",
     },
     {
       icon: "ActivitySquare",

@@ -23,7 +23,7 @@ interface AuthState {
 
 // Async thunks for authentication actions
 export const login = createAsyncThunk(
-  'auth/login',
+  'admin/login',
   async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
       console.log(credentials)
@@ -41,7 +41,7 @@ export const login = createAsyncThunk(
 );
 
 export const logout = createAsyncThunk(
-  'auth/logout',
+  'admin/logout',
   async (_, { rejectWithValue }) => {
     try {
       await api.post('/auth/logout');

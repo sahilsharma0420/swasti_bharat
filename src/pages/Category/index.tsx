@@ -15,7 +15,7 @@ import {
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import * as Yup from "yup";
 
-import { YogaCategoryService } from "@/services/category.service";
+import { YogaCategoryService } from "@/services/apiService";
 
 // Define TypeScript interfaces
 interface CategoryFormValues {
@@ -99,10 +99,9 @@ const Main: React.FC = () => {
   };
 
   const handleSubmit = async (
-    values: CategoryFormValues, 
+    values: CategoryFormValues,
     { resetForm, setSubmitting }: { resetForm: () => void; setSubmitting: (isSubmitting: boolean) => void }
   ): Promise<void> => {
-    // Check for duplicates when adding new category
     if (
       editIndex === null &&
       categories.some(
@@ -113,31 +112,26 @@ const Main: React.FC = () => {
       setSubmitting(false);
       return;
     }
-    
+  
     setLoading(true);
     try {
-      const categoryData = { 
-        category: values.category, 
-        description: values.description
+      const categoryData: { category: string; description?: string } = {
+        category: values.category,
+        ...(values.description?.trim() && { description: values.description.trim() })
       };
-      
+  
       if (editIndex !== null) {
-        // Edit existing category
         const categoryToUpdate = categories[editIndex];
         await YogaCategoryService.updateCategory(categoryToUpdate.id, categoryData);
         showNotification("Yoga category updated successfully", "success");
         setEditIndex(null);
       } else {
-        // Add new category
-        console.log(categoryData)
+        console.log(categoryData);
         await YogaCategoryService.createCategory(categoryData);
         showNotification("Yoga category added successfully", "success");
       }
-      
-      // Refresh categories list
+  
       fetchCategories();
-      
-      // Reset form
       resetForm();
     } catch (error: any) {
       showNotification(`Error: ${error.message}`, "error");
@@ -146,6 +140,7 @@ const Main: React.FC = () => {
       setSubmitting(false);
     }
   };
+  
 
   const handleEdit = (index: number): void => {
     const item = categories[index];

@@ -51,16 +51,18 @@ function Main() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       return;
     }
-    
+
     try {
       setSuccess("");
 
       // Get remember me checkbox value
-      const rememberCheckbox = document.getElementById("remember") as HTMLInputElement;
+      const rememberCheckbox = document.getElementById(
+        "remember"
+      ) as HTMLInputElement;
       if (rememberCheckbox && rememberCheckbox.checked) {
         localStorage.setItem("remember_email", email);
       } else {
@@ -98,13 +100,8 @@ function Main() {
             </div>
             <div className="mt-10">
               <div className="text-2xl font-medium">Sign In</div>
-              <div className="mt-2.5 text-slate-600 dark:text-slate-400">
-                Don't have an account?{" "}
-                <a className="font-medium text-primary" href="">
-                  Sign Up
-                </a>
-              </div>
-              
+          
+
               {/* Success Alert */}
               {success && (
                 <Alert
@@ -132,7 +129,7 @@ function Main() {
                   )}
                 </Alert>
               )}
-              
+
               {/* Error Alert */}
               {error && (
                 <Alert
@@ -160,40 +157,8 @@ function Main() {
                   )}
                 </Alert>
               )}
-              
-              {/* Default Welcome Alert */}
-              {!error && !success && (
-                <Alert
-                  variant="outline-primary"
-                  className="flex items-center px-4 py-3 my-7 bg-primary/5 border-primary/20 rounded-[0.6rem] leading-[1.7]"
-                >
-                  {({ dismiss }) => (
-                    <>
-                      <div className="">
-                        <Lucide
-                          icon="Lightbulb"
-                          className="stroke-[0.8] w-7 h-7 mr-2 fill-primary/10"
-                        />
-                      </div>
-                      <div className="ml-1 mr-8">
-                        Welcome to <span className="font-medium">Tailwise</span>{" "}
-                        demo! Simply click{" "}
-                        <span className="font-medium">Sign In</span> to explore
-                        and access our documentation.
-                      </div>
-                      <Alert.DismissButton
-                        type="button"
-                        className="btn-close text-primary"
-                        onClick={dismiss}
-                        aria-label="Close"
-                      >
-                        <Lucide icon="X" className="w-5 h-5" />
-                      </Alert.DismissButton>
-                    </>
-                  )}
-                </Alert>
-              )}
-              
+
+          
               <form onSubmit={handleSubmit}>
                 <div className="mt-6">
                   <FormLabel htmlFor="email">Email*</FormLabel>
@@ -207,7 +172,9 @@ function Main() {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
-                  <FormLabel className="mt-4" htmlFor="password">Password*</FormLabel>
+                  <FormLabel className="mt-4" htmlFor="password">
+                    Password*
+                  </FormLabel>
                   <FormInput
                     id="password"
                     name="password"
@@ -218,33 +185,68 @@ function Main() {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                   />
-                     <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                    </svg>
-                  ) : (
-                    <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
-                </button>
+                  {/* <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <svg
+                        className="h-5 w-5 text-gray-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="h-5 w-5 text-gray-500"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
+                      </svg>
+                    )}
+                  </button> */}
                   <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center">
-                <input type="checkbox" id="remember" className="h-4 w-4 text-blue-600" />
-                <label htmlFor="remember" className="ml-2 text-sm text-gray-600">
-                  Remember me
-                </label>
-              </div>
-              <a href="#" className="text-sm text-blue-600 hover:underline">
-                Forgot password?
-              </a>
-            </div>
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="remember"
+                        className="h-4 w-4 text-blue-600"
+                      />
+                      <label
+                        htmlFor="remember"
+                        className="ml-2 text-sm text-gray-600"
+                      >
+                        Remember me
+                      </label>
+                    </div>
+                    <a
+                      href="#"
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      Forgot password?
+                    </a>
+                  </div>
                   <div className="mt-5 text-center xl:mt-8 xl:text-left">
                     <Button
                       variant="primary"
@@ -255,17 +257,7 @@ function Main() {
                     >
                       {loading ? "Signing In..." : "Sign In"}
                     </Button>
-                    <Button
-                      variant="outline-secondary"
-                      rounded
-                      className="bg-white/70 w-full py-3.5 mt-3 dark:bg-darkmode-400"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        navigate("/signup");
-                      }}
-                    >
-                      Sign Up
-                    </Button>
+            
                   </div>
                 </div>
               </form>

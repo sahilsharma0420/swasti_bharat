@@ -40,7 +40,6 @@ import Interactive from "../pages/Interactive";
 import RegularTable from "../pages/RegularTable";
 import Tabulator from "../pages/Tabulator";
 import Modal from "../pages/Modal";
-import { Slideover } from "@/components/Base/Headless";
 import Notification from "../pages/Notification";
 import Tab from "../pages/Tab";
 import Accordion from "../pages/Accordion";
@@ -80,7 +79,9 @@ import Instructors from "../pages/Instructors";
 import View from "../pages/ViewComponent";
 import Upload from "../pages/UploadComponent";
 import Banner from "../pages/Banner";
-import React from "react";
+import React from "react"; 
+import YogaCategoryRule from "../pages/ytRules"
+import YogaCategoryRequirement from "../pages/ytRequirements"
 
 function Router() {
   const routes = [
@@ -124,6 +125,9 @@ function Router() {
             { path: "/profile1", element: <Profile1 /> },
             { path: "/calender2", element: <Calender2 /> },
             { path: "/specialisation", element: <Specialisation /> },
+            { path: "/yogaCategoryRequirement", element: <YogaCategoryRequirement /> },
+            { path: "/yogaCategoryRule", element: <YogaCategoryRule /> },
+
             { path: "/category", element: <Category /> },
             { path: "/cardPage", element: <Cardpage /> },
             { path: "/view", element: <View /> },
@@ -165,7 +169,6 @@ function Router() {
             { path: "/regular-table", element: <RegularTable /> },
             { path: "/tabulator", element: <Tabulator /> },
             { path: "/modal", element: <Modal /> },
-            { path: "/slideover", element: <Slideover /> },
             { path: "/notification", element: <Notification /> },
             { path: "/tab", element: <Tab /> },
             { path: "/accordion", element: <Accordion /> },

@@ -10,7 +10,10 @@ import {
   RefreshCw,
   ChevronDown,
 } from "lucide-react";
-import SpecializationService from "@/services/specialisationService";
+import { SpecializationService } from '@/services/apiService';
+
+
+
 import { Formik, Form, Field, ErrorMessage, FormikHelpers } from "formik";
 import * as Yup from "yup";
 
@@ -42,8 +45,10 @@ const SpecializationSchema = Yup.object().shape({
     .required("Specialization name is required")
     .min(2, "Specialization must be at least 2 characters")
     .max(50, "Specialization must be less than 50 characters"),
-  description: Yup.string()
-    .max(500, "Description must be less than 500 characters")
+  description: Yup.string().max(
+    500,
+    "Description must be less than 500 characters"
+  ),
 });
 
 const Main: React.FC = () => {
@@ -62,7 +67,9 @@ const Main: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
-  const [apiResponseDebug, setApiResponseDebug] = useState<string>("No API call made yet");
+  const [apiResponseDebug, setApiResponseDebug] = useState<string>(
+    "No API call made yet"
+  );
 
   // Initial form values for Formik
   const initialValues: SpecializationFormValues = {
@@ -74,40 +81,24 @@ const Main: React.FC = () => {
   useEffect(() => {
     fetchSpecializations();
   }, []);
-  
+
   // Helper function to extract specializations from various response formats
   const extractSpecializations = (response: any): Specialization[] => {
-    console.log("Attempting to extract specializations from:", response);
-    
-    // Try different possible paths to the specialization data
-    const possiblePaths = [
-      // Standard path based on interface
-      response?.data?.specialization,
-      // Direct data array
-      response?.specialization,
-      // Nested in data.data
-      response?.data?.data?.specialization,
-      // Just data property (if data is the array)
-      response?.data,
-      // Top level response itself (if response is the array)
-      response
-    ];
-    
-    for (const path of possiblePaths) {
-      if (Array.isArray(path)) {
-        console.log("Found specializations array at path:", path);
-        return path.filter(item => 
-          item && 
-          typeof item === 'object' && 
-          item.hasOwnProperty('_id') && 
-          item.hasOwnProperty('specialization')
-        );
-      }
+    const specializationArray = response?.data?.specialization;
+  
+    if (Array.isArray(specializationArray)) {
+      return specializationArray.filter(
+        (item) =>
+          item &&
+          typeof item === "object" &&
+          "_id" in item &&
+          "specialization" in item
+      );
     }
-    
-    console.error("Could not find valid specializations array in response");
+  
     return [];
   };
+  
 
   // Fetch all specializations from API
   const fetchSpecializations = async (): Promise<void> => {
@@ -116,22 +107,23 @@ const Main: React.FC = () => {
       const response = await SpecializationService.getAllSpecializations();
       console.log("Raw API response:", response);
       setApiResponseDebug(JSON.stringify(response, null, 2));
-      
+
       // Try to extract specializations regardless of the response structure
       const extractedSpecializations = extractSpecializations(response);
-      
+
       if (extractedSpecializations.length > 0) {
         setSpecializations(extractedSpecializations);
-        showNotification(`Loaded ${extractedSpecializations.length} specializations successfully`, "success");
-        
+        showNotification(
+          `Loaded ${extractedSpecializations.length} specializations successfully`,
+          "success"
+        );
+
         // Try to extract pagination info if available
-        const totalPages = response?.data?.totalPages || 
-                          response?.data?.data?.totalPages || 
-                          1;
-        const currentPage = response?.data?.currentPage || 
-                           response?.data?.data?.currentPage || 
-                           1;
-        
+        const totalPages =
+          response?.data?.totalPages || response?.data?.data?.totalPages || 1;
+        const currentPage =
+          response?.data?.currentPage || response?.data?.data?.currentPage || 1;
+
         setTotalPages(totalPages);
         setCurrentPage(currentPage);
       } else {
@@ -151,7 +143,10 @@ const Main: React.FC = () => {
     }
   };
 
-  const showNotification = (message: string, type: "success" | "error"): void => {
+  const showNotification = (
+    message: string,
+    type: "success" | "error"
+  ): void => {
     setNotification({ show: true, message, type });
     setTimeout(
       () => setNotification({ show: false, message: "", type: "" }),
@@ -160,13 +155,14 @@ const Main: React.FC = () => {
   };
 
   const handleSubmit = async (
-    values: SpecializationFormValues, 
+    values: SpecializationFormValues,
     { resetForm, setSubmitting }: FormikHelpers<SpecializationFormValues>
   ): Promise<void> => {
     // Check for duplicate specialization
     const specialtyExists = specializations.some(
       (spec: Specialization) =>
-        spec.specialization.toLowerCase() === values.specialization.toLowerCase() &&
+        spec.specialization.toLowerCase() ===
+          values.specialization.toLowerCase() &&
         (editIndex === null || specializations.indexOf(spec) !== editIndex)
     );
 
@@ -179,7 +175,10 @@ const Main: React.FC = () => {
     setLoading(true);
 
     try {
-      const newSpecialization: Omit<Specialization, '_id' | 'createdAt' | 'updatedAt'> = {
+      const newSpecialization: Omit<
+        Specialization,
+        "_id" | "createdAt" | "updatedAt"
+      > = {
         specialization: values.specialization,
         description: values.description || "No description provided",
       };
@@ -223,13 +222,13 @@ const Main: React.FC = () => {
 
   const confirmDeleteAction = async (): Promise<void> => {
     if (confirmDelete === null) return;
-    
+
     const specToDelete = specializations[confirmDelete];
     if (!specToDelete) {
       setConfirmDelete(null);
       return;
     }
-    
+
     setLoading(true);
     try {
       await SpecializationService.deleteSpecialization(specToDelete._id);
@@ -273,15 +272,14 @@ const Main: React.FC = () => {
 
   // Safely filter specializations with proper checks
   const filteredSpecializations = specializations
-    .filter(spec => spec && typeof spec === 'object')
-    .filter(spec => 
-      spec.specialization && 
-      spec.specialization.toLowerCase().includes(searchTerm.toLowerCase())
+    .filter((spec) => spec && typeof spec === "object")
+    .filter(
+      (spec) =>
+        spec.specialization &&
+        spec.specialization.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-
   return (
-    
     <div className="w-full mx-auto p-6 bg-white rounded-lg shadow-lg border border-gray-200">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-800 flex items-center">
@@ -289,7 +287,6 @@ const Main: React.FC = () => {
             <PlusCircle size={24} />
           </span>
           Yoga Specialization Management
-          
         </h2>
         {loading && (
           <div className="flex items-center text-blue-600">
@@ -325,8 +322,6 @@ const Main: React.FC = () => {
           </button>
         </div>
       )}
-
-    
 
       {confirmDelete !== null && specializations[confirmDelete] && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -548,11 +543,13 @@ const Main: React.FC = () => {
                 No specializations found
               </h3>
               <p className="text-gray-500 mt-2">
-                {loading ? "Loading specializations..." : "Try adjusting your search or add a new specialization"}
+                {loading
+                  ? "Loading specializations..."
+                  : "Try adjusting your search or add a new specialization"}
               </p>
             </div>
           )}
-          
+
           {/* Pagination display */}
           {totalPages > 1 && (
             <div className="mt-4 flex justify-between items-center text-sm text-gray-600">
@@ -563,7 +560,6 @@ const Main: React.FC = () => {
           )}
         </div>
       )}
-
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-import authService from "@/services/authService";
+import {AuthService} from "@/services/apiService";
 // Define types
 interface User {
   // Add user properties based on your actual user object
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const loadUser = async () => {
       try {
         if (localStorage.getItem("auth_token")) {
-          const { data } = await authService.getCurrentUser();
+          const { data } = await AuthService.getCurrentUser();
           setCurrentUser(data);
         }
       } catch (err) {
@@ -57,7 +57,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await authService.register(userData);
+      const response = await AuthService.register(userData);
       return response.data;
     } catch (err: any) {
       setError(err.response?.data?.message || "Registration failed");
@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await authService.login(credentials);
+      const response = await AuthService.login(credentials);
       console.log(response.data.data)
       
       const { accessToken, isAdmin } = response.data.data;
@@ -94,7 +94,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Logout user
   const logout = () => {
-    authService.logout();
+    AuthService.logout();
     localStorage.removeItem("auth_token");
     setCurrentUser(null);
   };
