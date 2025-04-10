@@ -51,6 +51,16 @@ const initialState: SideMenuState = {
     },
     {
       icon: "ActivitySquare",
+      pathname: "/yogaclassfrom",
+      title: "Yogaclassfrom",
+    },
+    {
+      icon: "ActivitySquare",
+      pathname: "/instructorDashboard",
+      title: "InstructorDashboard",
+    },
+    {
+      icon: "ActivitySquare",
       pathname: "/view",
       title: "View",
     },

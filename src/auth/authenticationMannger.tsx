@@ -1,13 +1,21 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { useDispatch } from "react-redux";
+import { getCurrentUser } from "@/stores/authSlice";
+import { AuthService } from "@/services/apiService";
+import type { AppDispatch } from "@/stores/store";
 
-import {AuthService} from "@/services/apiService";
-// Define types
+// Define user type
 interface User {
-  // Add user properties based on your actual user object
   id?: string;
   email?: string;
   name?: string;
-  // Add other user properties as needed
+  // Extend with other user properties
 }
 
 interface AuthContextType {
@@ -19,30 +27,36 @@ interface AuthContextType {
   logout: () => void;
 }
 
-// Create context with proper typing
+// Create context
 const AuthContext = createContext<AuthContextType | null>(null);
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-// Auth provider component
 export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const dispatch = useDispatch<AppDispatch>(); // ✅ Typed dispatch
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Check if user is logged in on initial load
+  // Load user on mount
   useEffect(() => {
     const loadUser = async () => {
       try {
-        if (localStorage.getItem("auth_token")) {
-          const { data } = await AuthService.getCurrentUser();
-          setCurrentUser(data);
+        const token = localStorage.getItem("auth_token");
+        if (token) {
+          const action = await dispatch(getCurrentUser());
+
+          // Check if fulfilled
+          if (getCurrentUser.fulfilled.match(action)) {
+            setCurrentUser(action.payload); // ✅ Set from Redux result
+          } else {
+            localStorage.removeItem("auth_token");
+          }
         }
       } catch (err) {
         console.error("Failed to load user", err);
-        // Clear invalid token
         localStorage.removeItem("auth_token");
       } finally {
         setLoading(false);
@@ -50,9 +64,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
 
     loadUser();
-  }, []);
+  }, [dispatch]);
 
-  // Register new user
+  // Register
   const register = async (userData: any) => {
     setLoading(true);
     setError(null);
@@ -67,22 +81,16 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  // Login user
+  // Login
   const login = async (credentials: any) => {
     setLoading(true);
     setError(null);
     try {
       const response = await AuthService.login(credentials);
-      console.log(response.data.data)
-      
-      const { accessToken, isAdmin } = response.data.data;
-      
-      // Save token to localStorage
+      const { accessToken, user } = response.data.data;
+
       localStorage.setItem("auth_token", accessToken);
-      
-      // Update user in state
-      setCurrentUser(isAdmin);
-      
+      setCurrentUser(user); // ✅ Should be `user`, not `isAdmin`
       return response.data;
     } catch (err: any) {
       setError(err.response?.data?.message || "Login failed");
@@ -92,14 +100,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  // Logout user
+  // Logout
   const logout = () => {
     AuthService.logout();
     localStorage.removeItem("auth_token");
     setCurrentUser(null);
   };
 
-  // Context value
+  // Provide context
   const value: AuthContextType = {
     currentUser,
     loading,
@@ -109,14 +117,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     logout,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook to use the auth context
+// Custom hook
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {

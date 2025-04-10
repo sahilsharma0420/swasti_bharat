@@ -23,10 +23,76 @@ interface YTRule {
   rule: string;
 }
 
+interface YogaCategory {
+  _id: string;
+  yogaCategory: string;
+  description: string;
+}
+
+interface DateOfClass {
+  date: string;
+  meetingLink: string | null;
+  day?: string;
+  classDatesTimeInUTC?: string;
+}
+
+interface YogaClass {
+  _id: string;
+  modeOfClass: string;
+  classType: string;
+  time: string;
+  description: string;
+  timeDurationInMin: number;
+  numberOfSeats: number;
+  numberOfClass: number;
+  packageType: string;
+  price: number;
+  datesOfClasses: DateOfClass[];
+  yogaCategory: YogaCategory[] | string[];
+  yTRequirement: YTRequirement[] | string[];
+  yTRule: YTRule[] | string[];
+  instructor: string | { _id: string; name: string; profilePic: string };
+  startDate: string;
+  endDate: string;
+  approvalByAdmin: 'pending' | 'accepted' | 'rejected';
+  instructorTimeZone: string;
+  isBooked: boolean;
+  classStartTimeInUTC?: string;
+  createdAt: string;
+}
+
+interface YogaClassFilters {
+  modeOfClass?: string;
+  classType?: string;
+  search?: string;
+  approvalByAdmin?: 'pending' | 'accepted' | 'rejected';
+  page?: number;
+  resultPerPage?: number;
+}
+
+interface UserClassFilters {
+  mOC?: string; // modeOfClass
+  cT?: string; // classType
+  search?: string;
+  date?: string;
+  timing?: string;
+  pt?: string; // packageType
+  miP?: number; // minimumPrice
+  maP?: number; // maximumPrice
+  page?: number;
+  resultPerPage?: number;
+}
+
 interface ApiResponse<T> {
   success: boolean;
   message: string;
   data?: T;
+}
+
+interface PaginatedResponse<T> {
+  data: T[];
+  totalPages: number;
+  currentPage: number;
 }
 
 // Base URLs
@@ -34,6 +100,7 @@ const YOGA_CATEGORY_URL = '/admin/mas/y-c';
 const SPECIALIZATION_URL = '/admin/mas/specialization';
 const YT_REQUIREMENT_URL = '/admin/mas/yTRequirement';
 const YT_RULE_URL = '/admin/mas/yTRule';
+const YOGA_CLASS_URL = '/yoga-classes';
 
 // Auth Service
 export const AuthService = {
@@ -53,7 +120,6 @@ export const AuthService = {
     return api.get('/auth/me');
   }
 };
-
 // Yoga Category Service
 export const YogaCategoryService = {
   getAllCategories: async () => {
@@ -107,7 +173,6 @@ export const YogaCategoryService = {
     }
   }
 };
-
 // Specialization Service
 export const SpecializationService = {
   createSpecialization: async (specializationData: any) => {
@@ -155,6 +220,124 @@ export const SpecializationService = {
     }
   }
 };
+// Yoga Class Service
+export const YogaClassService = {
+  // Instructor endpoints
+  addNewClass: async (classData: Partial<YogaClass>): Promise<ApiResponse<null>> => {
+    try {
+      const response = await api.post<ApiResponse<null>>(YOGA_CLASS_URL, classData);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { message: 'Failed to add class' };
+    }
+  },
+
+  getInstructorClasses: async (filters: YogaClassFilters = {}): Promise<ApiResponse<PaginatedResponse<YogaClass>>> => {
+    try {
+      const { modeOfClass, classType, search, approvalByAdmin = 'accepted', page = 1, resultPerPage = 20 } = filters;
+      
+      const params = new URLSearchParams();
+      if (modeOfClass) params.append('modeOfClass', modeOfClass);
+      if (classType) params.append('classType', classType);
+      if (search) params.append('search', search);
+      params.append('approvalByAdmin', approvalByAdmin);
+      params.append('page', page.toString());
+      params.append('resultPerPage', resultPerPage.toString());
+      
+      const response = await api.get<ApiResponse<PaginatedResponse<YogaClass>>>(`${YOGA_CLASS_URL}/instructor?${params.toString()}`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { message: 'Failed to fetch instructor classes' };
+    }
+  },
+
+  getClassDetails: async (classId: string): Promise<ApiResponse<YogaClass>> => {
+    try {
+      const response = await api.get<ApiResponse<YogaClass>>(`${YOGA_CLASS_URL}/instructor/${classId}`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { message: 'Failed to fetch class details' };
+    }
+  },
+
+  updateClass: async (classId: string, classData: Partial<YogaClass>): Promise<ApiResponse<null>> => {
+    try {
+      const response = await api.put<ApiResponse<null>>(`${YOGA_CLASS_URL}/${classId}`, classData);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { message: 'Failed to update class' };
+    }
+  },
+
+  deleteClass: async (classId: string): Promise<ApiResponse<null>> => {
+    try {
+      const response = await api.delete<ApiResponse<null>>(`${YOGA_CLASS_URL}/${classId}`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { message: 'Failed to delete class' };
+    }
+  },
+
+  // Admin endpoints
+  getAdminClasses: async (filters: YogaClassFilters = {}): Promise<ApiResponse<PaginatedResponse<YogaClass>>> => {
+    try {
+      const { modeOfClass, classType, search, approvalByAdmin = 'pending', page = 1, resultPerPage = 20 } = filters;
+      
+      const params = new URLSearchParams();
+      if (modeOfClass) params.append('modeOfClass', modeOfClass);
+      if (classType) params.append('classType', classType);
+      if (search) params.append('search', search);
+      params.append('approvalByAdmin', approvalByAdmin);
+      params.append('page', page.toString());
+      params.append('resultPerPage', resultPerPage.toString());
+      
+      const response = await api.get<ApiResponse<PaginatedResponse<YogaClass>>>(`${YOGA_CLASS_URL}/admin?${params.toString()}`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { message: 'Failed to fetch admin classes' };
+    }
+  },
+
+  approveRejectClass: async (classId: string, approvalStatus: 'accepted' | 'rejected'): Promise<ApiResponse<null>> => {
+    try {
+      const response = await api.put<ApiResponse<null>>(`${YOGA_CLASS_URL}/approve/${classId}`, { approvalByAdmin: approvalStatus });
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { message: 'Failed to update approval status' };
+    }
+  },
+
+  // User endpoints
+  getUserClasses: async (filters: UserClassFilters = {}): Promise<ApiResponse<PaginatedResponse<YogaClass>>> => {
+    try {
+      const { 
+        mOC, cT = 'individual', search, date, timing, 
+        pt, miP = 500, maP = 100000, page = 1, resultPerPage = 20 
+      } = filters;
+      
+      const params = new URLSearchParams();
+      if (mOC) params.append('mOC', mOC);
+      if (cT) params.append('cT', cT);
+      if (search) params.append('search', search);
+      if (date) params.append('date', date);
+      if (timing) params.append('timing', timing);
+      if (pt) params.append('pt', pt);
+      if (miP) params.append('miP', miP.toString());
+      if (maP) params.append('maP', maP.toString());
+      params.append('page', page.toString());
+      params.append('resultPerPage', resultPerPage.toString());
+      
+      const response = await api.get<ApiResponse<PaginatedResponse<YogaClass>>>(`${YOGA_CLASS_URL}/user?${params.toString()}`);
+      return response.data;
+    } catch (error: any) {
+      throw error.response?.data || { message: 'Failed to fetch classes for user' };
+    }
+  }
+};
+
+
+
+
 
 // Yoga Tutor Requirements Service
 export const YogaTutorRequirementsService = {
@@ -249,4 +432,16 @@ export const YogaTutorRulesService = {
 };
 
 // Export types for use in components
-export type { LoginCredentials, RegisterData, YTRequirement, YTRule, ApiResponse };
+export type { 
+  LoginCredentials, 
+  RegisterData, 
+  YTRequirement, 
+  YTRule, 
+  ApiResponse, 
+  YogaClass,
+  YogaCategory,
+  DateOfClass,
+  YogaClassFilters,
+  UserClassFilters,
+  PaginatedResponse
+};

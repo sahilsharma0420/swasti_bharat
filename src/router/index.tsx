@@ -82,7 +82,8 @@ import Banner from "../pages/Banner";
 import React from "react"; 
 import YogaCategoryRule from "../pages/ytRules"
 import YogaCategoryRequirement from "../pages/ytRequirements"
-
+import InstructorDashboard from "@/pages/instructorDashboard";
+import YogaClassManager from "../pages/YogaClassForm";
 function Router() {
   const routes = [
     // Public routes
@@ -127,6 +128,9 @@ function Router() {
             { path: "/specialisation", element: <Specialisation /> },
             { path: "/yogaCategoryRequirement", element: <YogaCategoryRequirement /> },
             { path: "/yogaCategoryRule", element: <YogaCategoryRule /> },
+            { path: "/yogaclassfrom", element: <YogaClassManager userRole={"instructor"} /> },
+            { path: "/instructorDashboard", element: <InstructorDashboard /> },
+
 
             { path: "/category", element: <Category /> },
             { path: "/cardPage", element: <Cardpage /> },

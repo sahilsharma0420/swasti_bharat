@@ -60,16 +60,19 @@ export const getCurrentUser = createAsyncThunk(
     try {
       const token = localStorage.getItem('auth_token');
       if (!token) return null;
-      
+
       const response = await api.get('/admin/me');
       return response.data;
     } catch (error: any) {
-      localStorage.removeItem('auth_token');
-      return rejectWithValue(error.response?.data?.message || 'Failed to get user');
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        // Return null instead of throwing
+        return null;
+      }
+
+      return rejectWithValue(error.response?.data?.message || "Failed to get user");
     }
   }
 );
-
 const initialState: AuthState = {
   currentUser: null,
   isAuthenticated: false,
